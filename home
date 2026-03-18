@@ -1,0 +1,1228 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tama Friends</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&amp;family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+  <script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bow: '#D4A0A0',
+        'warm-wood': '#8B6F4E',
+        candle: '#F5D5A0',
+        leaf: '#7A9E7E',
+        juniper: '#4A6D5C'
+      },
+      fontFamily: {
+        pixel: ['Silkscreen', 'monospace'],
+        body: ['Nunito', 'sans-serif']
+      }
+    }
+  }
+}
+</script>
+  <style>
+html, body { height: 100%; margin: 0; }
+.app-wrapper { height: 100%; overflow: auto; }
+
+@keyframes petBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes petWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+@keyframes heartFloat {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(1.5); }
+}
+@keyframes sparkle {
+  0% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(0); }
+}
+@keyframes feedChomp {
+  0%, 100% { transform: scaleY(1); }
+  25% { transform: scaleY(0.85); }
+  50% { transform: scaleY(1.05); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes xpPop {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-30px) scale(1.3); }
+}
+@keyframes explode {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.5) rotate(180deg); opacity: 0; }
+}
+@keyframes confettiFall {
+  0% { opacity: 1; transform: translateY(-10px) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(60px) rotate(360deg); }
+}
+@keyframes speechBubbleAppear {
+  0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.speech-bubble { animation: speechBubbleAppear 0.3s ease-out; }
+.anim-explode { animation: explode 0.5s ease-out forwards; }
+.confetti-piece { animation: confettiFall 1.2s ease-in forwards; position: fixed; pointer-events: none; }
+.anim-bounce { animation: petBounce 1s ease-in-out infinite; }
+.anim-wiggle { animation: petWiggle 0.4s ease-in-out 3; }
+.anim-feed { animation: feedChomp 0.3s ease-in-out 3; }
+.anim-heart { animation: heartFloat 1s ease-out forwards; }
+.anim-sparkle { animation: sparkle 0.6s ease-out forwards; }
+.anim-slide-up { animation: slideUp 0.4s ease-out; }
+.anim-xp-pop { animation: xpPop 1s ease-out forwards; }
+
+.pixel-pet { image-rendering: pixelated; }
+
+.task-item { transition: all 0.3s ease; }
+.task-item:hover { transform: translateX(4px); }
+
+.stat-bar-fill { transition: width 0.6s ease; }
+
+.tab-btn { transition: all 0.2s ease; }
+.tab-btn.active { background: #4A6D5C; color: #F5D5A0; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(138,111,78,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #8B6F4E; border-radius: 4px; }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <div class="app-wrapper w-full bg-gradient-to-br from-candle via-[#f0e6d0] to-bow font-body" id="app-root">
+   <!-- SCREEN: PET SELECTION -->
+   <div id="screen-select" class="flex flex-col items-center justify-center min-h-full p-6">
+    <h1 id="main-title" class="font-pixel text-4xl md:text-5xl text-juniper mb-2 text-center">Tama Friends</h1>
+    <p id="main-subtitle" class="text-warm-wood text-lg mb-8 text-center">Raise your pet by being productive!</p>
+    <div class="bg-white/60 backdrop-blur rounded-2xl p-6 max-w-2xl w-full shadow-lg">
+     <h2 class="font-pixel text-xl text-juniper mb-4 text-center">Choose Your Friend</h2>
+     <div id="pet-grid" class="grid grid-cols-5 gap-3 mb-6"></div>
+     <div class="flex flex-col items-center gap-3">
+      <input id="pet-name-input" type="text" maxlength="16" placeholder="Name your pet..." class="w-64 px-4 py-2 rounded-xl border-2 border-warm-wood/30 bg-white/80 text-center font-body text-warm-wood focus:outline-none focus:border-juniper text-lg"> <button id="btn-start" disabled class="font-pixel px-8 py-3 bg-juniper text-candle rounded-xl hover:bg-leaf transition disabled:opacity-40 disabled:cursor-not-allowed text-lg">Start Journey</button>
+     </div>
+    </div>
+   </div><!-- SCREEN: MAIN APP -->
+   <div id="screen-main" class="hidden flex flex-col min-h-full">
+    <!-- Top Bar -->
+    <div class="flex items-center justify-between px-4 py-3 bg-juniper/90 backdrop-blur">
+     <h1 id="header-title" class="font-pixel text-candle text-lg">Tama Friends</h1>
+     <div class="flex items-center gap-3">
+      <span id="coins-display" class="font-pixel text-candle text-sm">🪙 0</span> <span id="xp-display" class="font-pixel text-candle text-sm">XP: 0</span> <span id="level-display" class="font-pixel text-bow text-sm bg-white/20 px-2 py-1 rounded-lg">Lv. 1</span>
+     </div>
+    </div><!-- Main Content Area -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+     <!-- Tasks on Left -->
+     <div class="lg:w-1/2 flex flex-col p-4 border-r border-warm-wood/10 overflow-hidden">
+      <div class="flex items-center justify-between mb-3">
+       <h2 id="tasks-heading-el" class="font-pixel text-juniper text-lg">My Tasks</h2><button id="btn-add-task" class="flex items-center gap-1 px-3 py-1.5 bg-juniper text-candle rounded-xl font-pixel text-xs hover:bg-leaf transition"><i data-lucide="plus" style="width:14px;height:14px"></i> Add</button>
+      </div><!-- Task Tabs -->
+      <div class="flex gap-2 mb-3 flex-wrap">
+       <button class="tab-btn active font-pixel text-xs px-3 py-1.5 rounded-lg bg-white/50 text-warm-wood" data-cat="all">All</button> <button class="tab-btn font-pixel text-xs px-3 py-1.5 rounded-lg bg-white/50 text-warm-wood" data-cat="homework">📚 Study</button> <button class="tab-btn font-pixel text-xs px-3 py-1.5 rounded-lg bg-white/50 text-warm-wood" data-cat="chores">🧹 Chores</button> <button class="tab-btn font-pixel text-xs px-3 py-1.5 rounded-lg bg-white/50 text-warm-wood" data-cat="hobbies">🎨 Hobbies</button>
+      </div><!-- Task List -->
+      <div id="task-list" class="flex-1 overflow-auto space-y-2 pb-4"></div><!-- Empty State -->
+      <div id="empty-tasks" class="flex-1 flex flex-col items-center justify-center text-warm-wood/50">
+       <i data-lucide="clipboard-list" style="width:48px;height:48px"></i>
+       <p class="font-pixel text-sm mt-2">No tasks yet!</p>
+       <p class="text-xs">Add tasks to feed your pet</p>
+      </div>
+     </div><!-- Right: Pet Area -->
+     <div class="lg:w-1/2 flex flex-col items-center justify-between p-4 pt-12 overflow-hidden">
+      <div class="bg-white/40 rounded-3xl p-6 flex flex-col items-center w-full max-w-sm relative">
+       <div id="pet-mood-label" class="font-pixel text-juniper text-sm mb-2"></div>
+       <div class="relative">
+        <canvas id="pet-canvas" width="120" height="120" class="pixel-pet anim-bounce cursor-pointer" title="Click to pet!"></canvas>
+        <div id="reaction-container" class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"></div>
+        <div id="speech-bubble" class="hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-white/90 rounded-xl px-3 py-2 text-center text-sm text-warm-wood font-semibold max-w-xs whitespace-normal shadow-lg border-2 border-juniper/30 speech-bubble">
+         <p id="speech-text"></p>
+         <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white/90 rotate-45 border-r-2 border-b-2 border-juniper/30"></div>
+        </div>
+       </div>
+       <div id="pet-dead-screen" class="hidden text-center">
+        <p class="text-6xl mb-2">💥</p>
+        <p id="pet-name-display" class="font-pixel text-warm-wood text-xl mb-1"></p>
+        <p class="text-warm-wood/60 text-sm mb-4">has exploded from eating too much!</p><button id="btn-restart" class="px-6 py-3 bg-juniper text-candle rounded-xl font-pixel hover:bg-leaf transition">Restart Journey</button>
+       </div>
+       <p id="pet-name-display-live" class="font-pixel text-warm-wood text-lg mt-3"></p>
+       <p id="pet-species-display" class="text-warm-wood/60 text-xs"></p><!-- Fun Facts -->
+       <div id="pet-facts" class="mt-3 w-full space-y-1 text-xs text-warm-wood/70 bg-white/30 rounded-lg p-3">
+        <p id="fact-1">🌟 Fun fact loading...</p>
+        <p id="fact-2">🌟 Fun fact loading...</p>
+        <p id="fact-3">🌟 Fun fact loading...</p>
+       </div><!-- Pet Stats and Actions -->
+       <div class="w-full mt-4"><!-- Stat Bars -->
+        <div id="stats-section" class="space-y-2 mb-3">
+         <h3 id="stats-heading-el" class="font-pixel text-juniper text-xs mb-1">Pet Stats</h3>
+         <div class="flex items-center gap-2">
+          <span class="text-xs w-12">❤️</span>
+          <div class="flex-1 h-2 bg-white/50 rounded-full overflow-hidden">
+           <div id="bar-health" class="stat-bar-fill h-full bg-bow rounded-full" style="width:100%"></div>
+          </div>
+         </div>
+         <div class="flex items-center gap-2">
+          <span class="text-xs w-12">😄</span>
+          <div class="flex-1 h-2 bg-white/50 rounded-full overflow-hidden">
+           <div id="bar-happy" class="stat-bar-fill h-full bg-candle rounded-full" style="width:100%"></div>
+          </div>
+         </div>
+         <div class="flex items-center gap-2">
+          <span class="text-xs w-12">🍎</span>
+          <div class="flex-1 h-2 bg-white/50 rounded-full overflow-hidden">
+           <div id="bar-food" class="stat-bar-fill h-full bg-leaf rounded-full" style="width:100%"></div>
+          </div>
+         </div>
+        </div><!-- XP bar -->
+        <div class="mb-3">
+         <div class="flex justify-between text-xs text-warm-wood/70 mb-1">
+          <span id="xp-label">0 / 100 XP</span> <span id="next-level-label">Next: Lv. 2</span>
+         </div>
+         <div class="h-2 bg-white/50 rounded-full overflow-hidden">
+          <div id="bar-xp" class="stat-bar-fill h-full bg-juniper rounded-full" style="width:0%"></div>
+         </div>
+        </div><!-- Action Buttons -->
+        <div class="flex gap-2 justify-center mb-3">
+         <button id="btn-feed" class="px-3 py-2 bg-leaf text-white rounded-xl font-pixel text-xs hover:bg-juniper transition flex items-center gap-1"><i data-lucide="apple" style="width:12px;height:12px"></i> Feed</button> <button id="btn-pet" class="px-3 py-2 bg-bow text-white rounded-xl font-pixel text-xs hover:bg-warm-wood transition flex items-center gap-1"><i data-lucide="heart" style="width:12px;height:12px"></i> Pet</button> <button id="btn-shop" class="px-3 py-2 bg-candle text-juniper rounded-xl font-pixel text-xs hover:bg-warm-wood hover:text-white transition flex items-center gap-1"><i data-lucide="shopping-bag" style="width:12px;height:12px"></i> Shop</button>
+        </div><!-- Study Tips -->
+        <div class="w-full bg-white/30 rounded-lg p-3 text-xs text-warm-wood/70 space-y-1.5">
+         <p class="font-semibold text-juniper mb-2">💡 Study Tips</p>
+         <p>✏️ Break study into 25-min focus sessions</p>
+         <p>📚 Review notes after each study session</p>
+         <p>🎯 Start with the hardest subject first</p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- ADD TASK MODAL -->
+    <div id="modal-task" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+     <div class="bg-[#f0e6d0] rounded-2xl p-6 w-full max-w-sm shadow-xl anim-slide-up">
+      <h3 class="font-pixel text-juniper text-lg mb-4">New Task</h3>
+      <form id="form-task" class="space-y-3">
+       <div>
+        <label for="task-title" class="text-sm text-warm-wood font-semibold">What do you need to do?</label> <input id="task-title" type="text" maxlength="60" required class="w-full px-3 py-2 rounded-xl border-2 border-warm-wood/20 bg-white/80 focus:outline-none focus:border-juniper" placeholder="e.g. Read chapter 5...">
+       </div>
+       <div>
+        <label class="text-sm text-warm-wood font-semibold">Category</label>
+        <div class="flex gap-2 mt-1">
+         <label class="flex-1 text-center cursor-pointer"><input type="radio" name="task-cat" value="homework" class="hidden peer" checked><span class="block px-3 py-2 rounded-xl border-2 border-warm-wood/20 peer-checked:border-juniper peer-checked:bg-juniper/10 text-sm">📚 Study</span></label> <label class="flex-1 text-center cursor-pointer"><input type="radio" name="task-cat" value="chores" class="hidden peer"><span class="block px-3 py-2 rounded-xl border-2 border-warm-wood/20 peer-checked:border-juniper peer-checked:bg-juniper/10 text-sm">🧹 Chores</span></label> <label class="flex-1 text-center cursor-pointer"><input type="radio" name="task-cat" value="hobbies" class="hidden peer"><span class="block px-3 py-2 rounded-xl border-2 border-warm-wood/20 peer-checked:border-juniper peer-checked:bg-juniper/10 text-sm">🎨 Hobbies</span></label>
+        </div>
+       </div>
+       <div class="flex gap-2 pt-2">
+        <button type="button" id="btn-cancel-task" class="flex-1 px-4 py-2 rounded-xl border-2 border-warm-wood/30 text-warm-wood font-pixel text-sm hover:bg-white/50 transition">Cancel</button> <button type="submit" id="btn-save-task" class="flex-1 px-4 py-2 rounded-xl bg-juniper text-candle font-pixel text-sm hover:bg-leaf transition">Add Task</button>
+       </div>
+      </form>
+     </div>
+    </div><!-- DELETE CONFIRM INLINE (hidden by default, used per-task) --><!-- SHOP MODAL -->
+    <div id="modal-shop" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+     <div class="bg-[#f0e6d0] rounded-2xl p-6 w-full max-w-sm shadow-xl anim-slide-up">
+      <div class="flex items-center justify-between mb-4">
+       <h3 class="font-pixel text-juniper text-lg">Pet Shop</h3><button id="btn-close-shop" class="text-warm-wood hover:text-juniper"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+      </div>
+      <p class="text-sm text-warm-wood mb-4">🪙 Your coins: <span id="shop-coins-display" class="font-pixel">0</span></p>
+      <div class="space-y-2 max-h-64 overflow-auto">
+       <div class="bg-white/60 rounded-xl p-3 flex items-center justify-between">
+        <div>
+         <p class="font-pixel text-sm text-juniper">Apple Snack</p>
+         <p class="text-xs text-warm-wood/70">+15 Food</p>
+        </div><button class="shop-item-btn px-3 py-2 bg-leaf text-white rounded-lg font-pixel text-xs hover:bg-juniper transition" data-cost="10" data-type="apple">10 🪙</button>
+       </div>
+       <div class="bg-white/60 rounded-xl p-3 flex items-center justify-between">
+        <div>
+         <p class="font-pixel text-sm text-juniper">Treat Box</p>
+         <p class="text-xs text-warm-wood/70">+30 Food</p>
+        </div><button class="shop-item-btn px-3 py-2 bg-leaf text-white rounded-lg font-pixel text-xs hover:bg-juniper transition" data-cost="20" data-type="treat">20 🪙</button>
+       </div>
+       <div class="bg-white/60 rounded-xl p-3 flex items-center justify-between">
+        <div>
+         <p class="font-pixel text-sm text-juniper">Love Boost</p>
+         <p class="text-xs text-warm-wood/70">+20 Happiness</p>
+        </div><button class="shop-item-btn px-3 py-2 bg-bow text-white rounded-lg font-pixel text-xs hover:bg-warm-wood transition" data-cost="15" data-type="love">15 🪙</button>
+       </div>
+       <div class="bg-white/60 rounded-xl p-3 flex items-center justify-between">
+        <div>
+         <p class="font-pixel text-sm text-juniper">Health Potion</p>
+         <p class="text-xs text-warm-wood/70">+25 Health</p>
+        </div><button class="shop-item-btn px-3 py-2 bg-candle text-juniper rounded-lg font-pixel text-xs hover:bg-warm-wood hover:text-white transition" data-cost="25" data-type="potion">25 🪙</button>
+       </div>
+      </div>
+      <p class="text-xs text-warm-wood/60 mt-4 text-center">Complete tasks to earn coins!</p>
+     </div>
+    </div>
+   </div>
+   <script>
+// ===== PET DEFINITIONS =====
+const PETS = [
+  { id: 'bunny', name: 'Bunny', emoji: '🐰', colors: { body: '#F5D5A0', ear: '#D4A0A0', eye: '#4A6D5C', cheek: '#D4A0A0' }, facts: ['Bunnies can sleep with their eyes open!', 'Their teeth never stop growing!', 'They communicate by thumping their feet!'] },
+  { id: 'cat', name: 'Kitty', emoji: '🐱', colors: { body: '#8B6F4E', ear: '#6B5540', eye: '#F5D5A0', cheek: '#D4A0A0' }, facts: ['Cats have over 20 different sounds!', 'They spend 70% of their life sleeping!', 'Cats can rotate their ears 180 degrees!'] },
+  { id: 'dog', name: 'Pup', emoji: '🐶', colors: { body: '#D4A0A0', ear: '#8B6F4E', eye: '#4A6D5C', cheek: '#F5D5A0' }, facts: ['Dogs can smell emotions!', 'Their hearing is 4x better than humans!', 'Puppies are born without vision!'] },
+  { id: 'frog', name: 'Froggy', emoji: '🐸', colors: { body: '#7A9E7E', ear: '#4A6D5C', eye: '#F5D5A0', cheek: '#D4A0A0' }, facts: ['Frogs don\'t have teeth to swallow food!', 'They use their eyes to push food down!', 'Some frogs can freeze and thaw!'] },
+  { id: 'bear', name: 'Bear', emoji: '🐻', colors: { body: '#8B6F4E', ear: '#6B5540', eye: '#F5D5A0', cheek: '#D4A0A0' }, facts: ['Bears can run up to 35 mph!', 'They have an excellent sense of smell!', 'Bears are actually quite intelligent!'] },
+  { id: 'penguin', name: 'Penguin', emoji: '🐧', colors: { body: '#4A6D5C', ear: '#F5D5A0', eye: '#F5D5A0', cheek: '#D4A0A0' }, facts: ['Penguins can swim up to 22 mph!', 'They can hold their breath for 6 minutes!', 'Penguin couples stay together for life!'] },
+  { id: 'duck', name: 'Ducky', emoji: '🐥', colors: { body: '#F5D5A0', ear: '#E8C870', eye: '#4A6D5C', cheek: '#D4A0A0' }, facts: ['Duck quacks don\'t echo!', 'Ducks can sleep with one eye open!', 'They have 3 eyelids!'] },
+  { id: 'owl', name: 'Owlet', emoji: '🦉', colors: { body: '#8B6F4E', ear: '#D4A0A0', eye: '#F5D5A0', cheek: '#7A9E7E' }, facts: ['Owls can turn their heads 270 degrees!', 'They are silent fliers!', 'Owls have forward-facing eyes!'] },
+  { id: 'fox', name: 'Fox', emoji: '🦊', colors: { body: '#D4A0A0', ear: '#8B6F4E', eye: '#4A6D5C', cheek: '#F5D5A0' }, facts: ['Foxes use Earth\'s magnetic field to hunt!', 'They have whiskers on their legs!', 'Foxes are excellent jumpers!'] },
+  { id: 'hamster', name: 'Hammy', emoji: '🐹', colors: { body: '#F5D5A0', ear: '#D4A0A0', eye: '#8B6F4E', cheek: '#D4A0A0' }, facts: ['Hamsters can carry food in their cheeks!', 'They can run 5 miles in one night!', 'Hamsters are colorblind!'] }
+];
+
+// ===== STATE =====
+let state = {
+  selectedPet: null,
+  petName: '',
+  xp: 0,
+  level: 1,
+  health: 100,
+  happiness: 100,
+  food: 100,
+  coins: 0,
+  tasks: [],
+  activeTab: 'all',
+  started: false,
+  petExploded: false
+};
+
+// Load pet state from localStorage (non-task state)
+function loadPetState() {
+  try {
+    const s = localStorage.getItem('tama_state');
+    if (s) {
+      const parsed = JSON.parse(s);
+      Object.assign(state, parsed);
+    }
+  } catch(e) {}
+}
+function savePetState() {
+  const { tasks, ...rest } = state;
+  localStorage.setItem('tama_state', JSON.stringify(rest));
+}
+
+// ===== DIALOGUE & TIPS =====
+const DIALOGUE = {
+  greeting: [
+    'Hi there! Ready to be productive?',
+    'Let\'s have a great day together!',
+    'I\'m so glad you\'re here!',
+    'Ready to complete some tasks?'
+  ],
+  encouragement: [
+    'You\'re doing amazing! 🌟',
+    'Keep it up! I believe in you!',
+    'That\'s awesome work!',
+    'I\'m so proud of you!',
+    'You\'re a superstar! ⭐',
+    'Great job! Let\'s do more!'
+  ],
+  taskComplete: [
+    'Yay! You completed a task! 🎉',
+    'Awesome! I\'m getting stronger!',
+    'Thanks for the XP boost!',
+    'Let\'s keep this momentum going!'
+  ],
+  needsFood: [
+    'I\'m getting a bit hungry... 🍎',
+    'Could I have a snack please?',
+    'My tummy is rumbling! 🍎',
+    'Feed me and I\'ll be stronger!'
+  ],
+  needsHappiness: [
+    'I could use some love right now...',
+    'Pet me? I need some attention! 💖',
+    'I\'m feeling a bit lonely...',
+    'Could you pet me please?'
+  ],
+  needsHealth: [
+    'I\'m not feeling so well... 😢',
+    'I need a health potion...',
+    'Can we visit the shop?',
+    'I need to recover my strength!'
+  ],
+  tips: [
+    'Tip: Complete tasks to earn XP and level up!',
+    'Tip: Different tasks give different XP amounts!',
+    'Tip: Keep my food and happiness high!',
+    'Tip: I get stronger as you get productive!',
+    'Tip: You can buy items in the shop with coins!',
+    'Tip: Click me to pet me and increase happiness!',
+    'Tip: Complete tasks quickly to get more coins!',
+    'Tip: Study tasks give the most XP!',
+    'Tip: Keep my stats balanced for best results!',
+    'Tip: You can rename me anytime by restarting!'
+  ]
+};
+
+function getRandomDialogue(category) {
+  const lines = DIALOGUE[category] || [];
+  return lines[Math.floor(Math.random() * lines.length)] || '';
+}
+
+function showSpeech(text, duration = 3000) {
+  const bubble = document.getElementById('speech-bubble');
+  const speechText = document.getElementById('speech-text');
+  speechText.textContent = text;
+  bubble.classList.remove('hidden');
+  setTimeout(() => {
+    bubble.classList.add('hidden');
+  }, duration);
+}
+
+// ===== PIXEL ART DRAWING =====
+function drawPet(canvas, petDef, size = 120, mood = 'happy') {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const s = size / 20; // pixel scale
+  const c = petDef.colors;
+  
+  // Helper functions
+  function rect(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x * s, y * s, w * s, h * s);
+  }
+  function circle(x, y, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x * s, y * s, r * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (petDef.id === 'bunny') {
+    // Body
+    rect(7, 9, 6, 8, c.body);
+    rect(5, 10, 10, 6, c.body);
+    // Head
+    rect(6, 5, 8, 6, c.body);
+    // Ears
+    rect(7, 0, 2, 6, c.ear);
+    rect(11, 0, 2, 6, c.ear);
+    rect(7.2, 1, 1.6, 4, c.cheek);
+    rect(11.2, 1, 1.6, 4, c.cheek);
+    // Eyes
+    if (mood === 'happy') { rect(7.5, 6, 1.2, 1.2, c.eye); rect(11.3, 6, 1.2, 1.2, c.eye); }
+    else if (mood === 'sad') { rect(7.5, 7, 1.2, 1.2, c.eye); rect(11.3, 7, 1.2, 1.2, c.eye); }
+    else { rect(7.5, 6, 1.5, 0.8, c.eye); rect(11.3, 6, 1.5, 0.8, c.eye); }
+    // Cheeks
+    rect(5.5, 7.5, 1.2, 1, c.cheek);
+    rect(13.3, 7.5, 1.2, 1, c.cheek);
+    // Mouth
+    if (mood === 'happy') { rect(9, 8.5, 2, 0.8, c.eye); }
+    else if (mood === 'eating') { rect(8.5, 8, 3, 2, c.eye); }
+    // Paws
+    rect(6, 16, 1.8, 1.5, c.ear);
+    rect(12.2, 16, 1.8, 1.5, c.ear);
+    // Tail
+    rect(4.5, 12, 1.2, 3, c.body);
+  } else if (petDef.id === 'cat') {
+    // Body
+    rect(7, 10, 6, 7, c.body);
+    rect(5, 11, 10, 5, c.body);
+    // Head
+    rect(6, 5, 8, 6, c.body);
+    // Ears
+    rect(6.5, 2, 1.5, 4, c.ear);
+    rect(12, 2, 1.5, 4, c.ear);
+    // Ear inner
+    rect(6.8, 2.5, 0.9, 2.5, c.cheek);
+    rect(12.3, 2.5, 0.9, 2.5, c.cheek);
+    // Eyes
+    if (mood === 'happy') { rect(7.5, 6.5, 1, 1.5, c.eye); rect(11.5, 6.5, 1, 1.5, c.eye); }
+    else if (mood === 'sad') { rect(7.5, 7, 1, 1, c.eye); rect(11.5, 7, 1, 1, c.eye); }
+    else { rect(7.5, 6.5, 1.2, 0.8, c.eye); rect(11.5, 6.5, 1.2, 0.8, c.eye); }
+    // Nose
+    rect(9, 8, 1, 0.8, c.cheek);
+    // Mouth whiskers
+    rect(5.5, 8.2, 1.5, 0.4, c.eye);
+    rect(13, 8.2, 1.5, 0.4, c.eye);
+    // Paws
+    rect(7, 17, 1.2, 1.2, c.ear);
+    rect(11.8, 17, 1.2, 1.2, c.ear);
+    // Tail curve
+    rect(3.5, 12, 1.5, 2, c.body);
+    rect(3, 13.5, 1, 1.5, c.body);
+  } else if (petDef.id === 'dog') {
+    // Body
+    rect(6.5, 10, 7, 7, c.body);
+    rect(5, 11, 10, 5, c.body);
+    // Head
+    rect(6, 5, 8, 6, c.body);
+    // Ears (floppy)
+    rect(4, 7, 1.5, 5, c.ear);
+    rect(14.5, 7, 1.5, 5, c.ear);
+    // Snout
+    rect(7, 8, 6, 2.5, c.ear);
+    // Eyes
+    if (mood === 'happy') { rect(7.5, 6, 1, 1.2, c.eye); rect(11.5, 6, 1, 1.2, c.eye); }
+    else if (mood === 'sad') { rect(7.5, 6.5, 1, 1, c.eye); rect(11.5, 6.5, 1, 1, c.eye); }
+    else { rect(7.5, 6, 1.2, 0.8, c.eye); rect(11.5, 6, 1.2, 0.8, c.eye); }
+    // Nose
+    rect(9, 9.5, 1.5, 1, c.cheek);
+    // Tongue
+    if (mood === 'happy') { rect(9.2, 10.5, 1.1, 0.8, c.cheek); }
+    // Paws
+    rect(6.5, 16.5, 1.5, 1.2, c.ear);
+    rect(12, 16.5, 1.5, 1.2, c.ear);
+    // Tail
+    rect(14, 11, 1.2, 3, c.body);
+  } else if (petDef.id === 'frog') {
+    // Body
+    rect(6, 10, 8, 7, c.body);
+    // Head
+    rect(5, 6, 10, 5, c.body);
+    // Eyes bulging
+    circle(7, 6, 1.2, c.body);
+    circle(13, 6, 1.2, c.body);
+    rect(6.8, 5, 1.5, 2.5, c.eye);
+    rect(12.7, 5, 1.5, 2.5, c.eye);
+    // Mouth
+    if (mood === 'happy') { rect(8.5, 9, 3, 0.6, c.eye); }
+    else if (mood === 'eating') { rect(8, 8.5, 4, 1.5, c.eye); }
+    // Spots
+    rect(7.5, 11, 1, 1.2, c.cheek);
+    rect(11.5, 11.5, 1, 1.2, c.cheek);
+    // Legs
+    rect(5.5, 16, 2, 1.5, c.body);
+    rect(12.5, 16, 2, 1.5, c.body);
+  } else if (petDef.id === 'bear') {
+    // Body
+    rect(6.5, 10, 7, 7, c.body);
+    rect(5, 11, 10, 5, c.body);
+    // Head
+    rect(5.5, 4, 9, 7, c.body);
+    // Ears
+    rect(5, 3, 2, 2.5, c.ear);
+    rect(13, 3, 2, 2.5, c.ear);
+    // Eye patches
+    rect(6.5, 5, 2, 2, c.ear);
+    rect(11.5, 5, 2, 2, c.ear);
+    // Eyes
+    rect(6.8, 5.3, 0.8, 1, c.eye);
+    rect(12.4, 5.3, 0.8, 1, c.eye);
+    // Snout
+    rect(7.5, 8, 5, 3, c.ear);
+    // Nose
+    rect(9, 9, 1.5, 0.8, c.eye);
+    // Paws
+    rect(6.5, 16.5, 1.8, 1.5, c.ear);
+    rect(12.7, 16.5, 1.8, 1.5, c.ear);
+  } else if (petDef.id === 'penguin') {
+    // Body
+    rect(7, 8, 6, 9, c.body);
+    // Belly
+    rect(8, 10, 4, 6, c.cheek);
+    // Head
+    rect(6.5, 3, 7, 6, c.body);
+    // Eyes
+    if (mood === 'happy') { rect(7.5, 5, 1, 1.2, c.eye); rect(11.5, 5, 1, 1.2, c.eye); }
+    else { rect(7.5, 5.5, 0.8, 0.8, c.eye); rect(11.5, 5.5, 0.8, 0.8, c.eye); }
+    // Beak
+    rect(9, 6.5, 2, 1.2, c.cheek);
+    // Wings
+    rect(5, 10, 1.2, 6, c.body);
+    rect(13.8, 10, 1.2, 6, c.body);
+    // Feet
+    rect(7.5, 17, 1.5, 1, c.cheek);
+    rect(11, 17, 1.5, 1, c.cheek);
+  } else if (petDef.id === 'duck') {
+    // Body
+    rect(6.5, 10, 7, 6, c.body);
+    // Neck
+    rect(8.5, 7, 3, 3.5, c.body);
+    // Head
+    rect(7.5, 4, 5, 4, c.body);
+    // Bill/beak
+    rect(13, 5.5, 2, 1.5, c.cheek);
+    // Eyes
+    if (mood === 'happy') { rect(11.5, 5, 1.2, 1, c.eye); }
+    else { rect(11.5, 5.5, 1, 0.8, c.eye); }
+    // Wing detail
+    rect(7.5, 11, 3, 2, c.cheek);
+    // Feet
+    rect(7, 16, 1.2, 1.2, c.cheek);
+    rect(11.8, 16, 1.2, 1.2, c.cheek);
+  } else if (petDef.id === 'owl') {
+    // Body
+    rect(7, 9, 6, 8, c.body);
+    // Head
+    rect(6, 3, 8, 7, c.body);
+    // Ear tufts
+    rect(5.5, 1, 1.2, 3, c.ear);
+    rect(13.3, 1, 1.2, 3, c.ear);
+    // Large eyes
+    circle(7.5, 5, 1.5, c.cheek);
+    circle(12.5, 5, 1.5, c.cheek);
+    rect(7, 4.5, 1.2, 1.5, c.eye);
+    rect(12.3, 4.5, 1.2, 1.5, c.eye);
+    // Beak
+    rect(9.2, 7, 1.6, 1, c.cheek);
+    // Wings
+    rect(5, 10, 1.5, 5, c.ear);
+    rect(13.5, 10, 1.5, 5, c.ear);
+    // Feet
+    rect(8.5, 16, 0.8, 1.5, c.cheek);
+    rect(10.7, 16, 0.8, 1.5, c.cheek);
+  } else if (petDef.id === 'fox') {
+    // Body
+    rect(6.5, 10, 7, 7, c.body);
+    // Head
+    rect(6, 5, 8, 6, c.body);
+    // Pointed ears
+    rect(5, 2, 2.2, 4, c.ear);
+    rect(12.8, 2, 2.2, 4, c.ear);
+    rect(5.5, 2.5, 1.2, 2.5, c.cheek);
+    rect(13.3, 2.5, 1.2, 2.5, c.cheek);
+    // Snout
+    rect(7.5, 7, 5, 2, c.cheek);
+    // Eyes
+    if (mood === 'happy') { rect(7.2, 5.5, 1, 1.2, c.eye); rect(11.8, 5.5, 1, 1.2, c.eye); }
+    else { rect(7.2, 6, 0.9, 1, c.eye); rect(11.8, 6, 0.9, 1, c.eye); }
+    // Nose
+    rect(9.2, 8, 1.2, 0.8, c.eye);
+    // Paws
+    rect(6.5, 16.5, 1.5, 1.2, c.ear);
+    rect(12, 16.5, 1.5, 1.2, c.ear);
+    // Tail
+    rect(3, 11, 1.5, 4, c.body);
+  } else if (petDef.id === 'hamster') {
+    // Body (round)
+    circle(10, 11, 3, c.body);
+    rect(7.5, 10, 5, 5, c.body);
+    // Head
+    circle(10, 7, 2.5, c.body);
+    // Ears
+    circle(7.5, 4.5, 1.2, c.ear);
+    circle(12.5, 4.5, 1.2, c.ear);
+    // Eyes
+    if (mood === 'happy') { rect(8.8, 6, 0.8, 1, c.eye); rect(11.4, 6, 0.8, 1, c.eye); }
+    else { rect(8.8, 6.5, 0.7, 0.8, c.eye); rect(11.4, 6.5, 0.7, 0.8, c.eye); }
+    // Cheek pouches
+    rect(6.5, 8, 1.5, 1.8, c.cheek);
+    rect(12, 8, 1.5, 1.8, c.cheek);
+    // Nose
+    rect(9.8, 7.8, 0.6, 0.6, c.eye);
+    // Front paws
+    rect(7.5, 14, 1.5, 1.2, c.ear);
+    rect(11, 14, 1.5, 1.2, c.ear);
+  }
+}
+
+// ===== XP / LEVEL SYSTEM =====
+function xpForLevel(lv) { return lv * 100; }
+
+function addXP(amount) {
+  state.xp += amount;
+  let needed = xpForLevel(state.level);
+  while (state.xp >= needed) {
+    state.xp -= needed;
+    state.level++;
+    needed = xpForLevel(state.level);
+    showReaction('⭐');
+    showSpeech(getRandomDialogue('encouragement'), 2500);
+  }
+  state.coins += 10; // Earn 10 coins per completed task
+  state.food = Math.min(100, state.food + 10);
+  state.happiness = Math.min(100, state.happiness + 5);
+  state.health = Math.min(100, state.health + 3);
+  showSpeech(getRandomDialogue('taskComplete'), 2500);
+  updateStatsUI();
+  savePetState();
+}
+
+function showReaction(emoji) {
+  const container = document.getElementById('reaction-container');
+  const el = document.createElement('div');
+  el.textContent = emoji;
+  el.className = 'anim-heart text-2xl absolute';
+  el.style.left = `${Math.random() * 40 - 20}px`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 1100);
+}
+
+function showXPPop(amount) {
+  const container = document.getElementById('reaction-container');
+  const el = document.createElement('div');
+  el.textContent = `+${amount} XP`;
+  el.className = 'anim-xp-pop font-pixel text-juniper text-sm absolute';
+  el.style.left = `${Math.random() * 30 - 15}px`;
+  el.style.top = '20px';
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 1100);
+}
+
+// ===== UI UPDATES =====
+function updateStatsUI() {
+  document.getElementById('bar-health').style.width = state.health + '%';
+  document.getElementById('bar-happy').style.width = state.happiness + '%';
+  document.getElementById('bar-food').style.width = state.food + '%';
+  document.getElementById('coins-display').textContent = `🪙 ${state.coins}`;
+  document.getElementById('xp-display').textContent = `XP: ${state.xp}`;
+  document.getElementById('level-display').textContent = `Lv. ${state.level}`;
+  const needed = xpForLevel(state.level);
+  document.getElementById('bar-xp').style.width = (state.xp / needed * 100) + '%';
+  document.getElementById('xp-label').textContent = `${state.xp} / ${needed} XP`;
+  document.getElementById('next-level-label').textContent = `Next: Lv. ${state.level + 1}`;
+
+  // Mood + Pet's needs
+  const avg = (state.health + state.happiness + state.food) / 3;
+  let mood = 'happy', moodText = 'Happy';
+  if (avg < 30) { mood = 'sad'; moodText = 'Sad'; }
+  else if (avg < 60) { mood = 'neutral'; moodText = 'Okay'; }
+  document.getElementById('pet-mood-label').textContent = moodText;
+
+  // Show encouragement based on pet needs (only if not already speaking)
+  const bubble = document.getElementById('speech-bubble');
+  if (bubble.classList.contains('hidden')) {
+    if (state.food < 30) {
+      showSpeech(getRandomDialogue('needsFood'), 3000);
+    } else if (state.happiness < 30) {
+      showSpeech(getRandomDialogue('needsHappiness'), 3000);
+    } else if (state.health < 30) {
+      showSpeech(getRandomDialogue('needsHealth'), 3000);
+    } else if (Math.random() < 0.1) {
+      showSpeech(getRandomDialogue('tips'), 3500);
+    }
+  }
+
+  if (state.selectedPet != null) {
+    drawPet(document.getElementById('pet-canvas'), PETS[state.selectedPet], 120, mood);
+  }
+}
+
+function renderTasks() {
+  const list = document.getElementById('task-list');
+  const empty = document.getElementById('empty-tasks');
+  const filtered = state.activeTab === 'all' ? state.tasks : state.tasks.filter(t => t.category === state.activeTab);
+  const incomplete = filtered.filter(t => !t.completed);
+  const complete = filtered.filter(t => t.completed);
+  const sorted = [...incomplete, ...complete];
+
+  if (state.tasks.length === 0) {
+    list.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  list.classList.remove('hidden');
+  empty.classList.add('hidden');
+
+  const existingMap = new Map([...list.children].map(el => [el.dataset.id, el]));
+  const newIds = new Set(sorted.map(t => t.__backendId));
+
+  // Remove old
+  existingMap.forEach((el, id) => { if (!newIds.has(id)) el.remove(); });
+
+  sorted.forEach((task, i) => {
+    let el = existingMap.get(task.__backendId);
+    if (!el) {
+      el = document.createElement('div');
+      el.dataset.id = task.__backendId;
+      el.className = 'task-item bg-white/60 rounded-xl p-3 flex items-center gap-3 anim-slide-up';
+      el.innerHTML = `
+        <button class="check-btn w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition"></button>
+        <div class="flex-1 min-w-0">
+          <p class="task-text text-sm font-semibold truncate"></p>
+          <span class="task-cat text-xs opacity-60"></span>
+        </div>
+        <span class="task-xp font-pixel text-xs text-juniper"></span>
+        <button class="del-btn text-bow hover:text-red-400 transition p-1"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+      `;
+      list.appendChild(el);
+      lucide.createIcons({ nameAttr: 'data-lucide', attrs: {}, icons: {} });
+      // Re-init lucide in this element
+      el.querySelectorAll('[data-lucide]').forEach(icon => {
+        lucide.createIcons();
+      });
+    }
+
+    const catEmoji = task.category === 'homework' ? '📚' : task.category === 'chores' ? '🧹' : '🎨';
+    const checkBtn = el.querySelector('.check-btn');
+    const taskText = el.querySelector('.task-text');
+    const taskCat = el.querySelector('.task-cat');
+    const taskXp = el.querySelector('.task-xp');
+
+    taskText.textContent = task.title;
+    taskCat.textContent = `${catEmoji} ${task.category}`;
+    taskXp.textContent = task.completed ? '✓' : `+${task.xp_value} XP`;
+
+    if (task.completed) {
+      checkBtn.className = 'check-btn w-6 h-6 rounded-full border-2 border-leaf bg-leaf flex items-center justify-center shrink-0 transition';
+      checkBtn.innerHTML = '<span class="text-white text-xs">✓</span>';
+      taskText.classList.add('line-through', 'opacity-50');
+      el.style.order = '1';
+    } else {
+      checkBtn.className = 'check-btn w-6 h-6 rounded-full border-2 border-warm-wood/30 flex items-center justify-center shrink-0 transition hover:border-leaf';
+      checkBtn.innerHTML = '';
+      taskText.classList.remove('line-through', 'opacity-50');
+      el.style.order = '0';
+    }
+
+    // Event: complete
+    checkBtn.onclick = async () => {
+      if (task.completed) return;
+      checkBtn.disabled = true;
+      const updated = { ...task, completed: true };
+      const res = await window.dataSdk.update(updated);
+      if (res.isOk) {
+        addXP(task.xp_value);
+        showReaction('💖');
+        showXPPop(task.xp_value);
+        const canvas = document.getElementById('pet-canvas');
+        canvas.classList.remove('anim-bounce');
+        canvas.classList.add('anim-wiggle');
+        setTimeout(() => { canvas.classList.remove('anim-wiggle'); canvas.classList.add('anim-bounce'); }, 1500);
+      }
+      checkBtn.disabled = false;
+    };
+
+    // Event: delete
+    const delBtn = el.querySelector('.del-btn');
+    delBtn.onclick = async () => {
+      // Inline confirm
+      const origHTML = el.innerHTML;
+      el.innerHTML = `<p class="text-sm text-warm-wood flex-1">Delete this task?</p>
+        <button class="yes-del px-3 py-1 bg-red-400 text-white rounded-lg font-pixel text-xs">Delete</button>
+        <button class="no-del px-3 py-1 bg-white/60 rounded-lg font-pixel text-xs text-warm-wood">Cancel</button>`;
+      el.querySelector('.no-del').onclick = () => { el.innerHTML = origHTML; renderTasks(); };
+      el.querySelector('.yes-del').onclick = async () => {
+        const res = await window.dataSdk.delete(task);
+        if (!res.isOk) { el.innerHTML = origHTML; renderTasks(); }
+      };
+    };
+
+    // Reorder in DOM
+    list.appendChild(el);
+  });
+
+  lucide.createIcons();
+}
+
+// ===== PET SELECTION =====
+function buildPetGrid() {
+  const grid = document.getElementById('pet-grid');
+  PETS.forEach((pet, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'pet-select-btn flex flex-col items-center p-2 rounded-xl border-2 border-transparent hover:border-juniper/50 transition bg-white/40';
+    btn.dataset.idx = i;
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    c.className = 'pixel-pet';
+    drawPet(c, pet, 64);
+    btn.appendChild(c);
+    const label = document.createElement('span');
+    label.className = 'text-xs text-warm-wood font-semibold mt-1';
+    label.textContent = pet.name;
+    btn.appendChild(label);
+    btn.onclick = () => {
+      document.querySelectorAll('.pet-select-btn').forEach(b => b.classList.remove('border-juniper', 'bg-juniper/10'));
+      btn.classList.add('border-juniper', 'bg-juniper/10');
+      state.selectedPet = i;
+      document.getElementById('btn-start').disabled = false;
+    };
+    grid.appendChild(btn);
+  });
+}
+
+// ===== INIT =====
+loadPetState();
+
+const defaultConfig = {
+  site_title: 'Tama Friends',
+  subtitle_text: 'Raise your pet by being productive!',
+  tasks_heading: 'My Tasks',
+  stats_heading: 'Pet Stats',
+  background_color: '#f0e6d0',
+  surface_color: '#FFFFFF',
+  text_color: '#8B6F4E',
+  primary_action_color: '#4A6D5C',
+  secondary_action_color: '#D4A0A0',
+  font_family: 'Nunito',
+  font_size: 16
+};
+
+function applyConfig(config) {
+  const c = { ...defaultConfig, ...config };
+  document.getElementById('main-title').textContent = c.site_title;
+  document.getElementById('header-title').textContent = c.site_title;
+  document.getElementById('main-subtitle').textContent = c.subtitle_text;
+  document.getElementById('tasks-heading-el').textContent = c.tasks_heading;
+  document.getElementById('stats-heading-el').textContent = c.stats_heading;
+
+  const root = document.getElementById('app-root');
+  root.style.fontFamily = `${c.font_family}, Nunito, sans-serif`;
+  root.style.fontSize = c.font_size + 'px';
+
+  root.style.setProperty('--bg', c.background_color);
+  root.style.setProperty('--surface', c.surface_color);
+  root.style.setProperty('--text', c.text_color);
+  root.style.setProperty('--primary', c.primary_action_color);
+  root.style.setProperty('--secondary', c.secondary_action_color);
+}
+
+// Initialize Element SDK if available
+if (window.elementSdk) {
+  window.elementSdk.init({
+    defaultConfig,
+    onConfigChange: async (config) => { applyConfig(config); },
+    mapToCapabilities: (config) => {
+      const c = { ...defaultConfig, ...config };
+      function colorMut(key) {
+        return {
+          get: () => c[key] || defaultConfig[key],
+          set: (v) => { c[key] = v; window.elementSdk.setConfig({ [key]: v }); }
+        };
+      }
+      return {
+        recolorables: [
+          colorMut('background_color'),
+          colorMut('surface_color'),
+          colorMut('text_color'),
+          colorMut('primary_action_color'),
+          colorMut('secondary_action_color')
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => c.font_family || defaultConfig.font_family,
+          set: (v) => { c.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+        },
+        fontSizeable: {
+          get: () => c.font_size || defaultConfig.font_size,
+          set: (v) => { c.font_size = v; window.elementSdk.setConfig({ font_size: v }); }
+        }
+      };
+    },
+    mapToEditPanelValues: (config) => {
+      const c = { ...defaultConfig, ...config };
+      return new Map([
+        ['site_title', c.site_title],
+        ['subtitle_text', c.subtitle_text],
+        ['tasks_heading', c.tasks_heading],
+        ['stats_heading', c.stats_heading]
+      ]);
+    }
+  });
+}
+
+// Data SDK
+const dataHandler = {
+  onDataChanged(data) {
+    state.tasks = data;
+    renderTasks();
+  }
+};
+
+(async () => {
+  if (window.dataSdk) {
+    const res = await window.dataSdk.init(dataHandler);
+    if (!res.isOk) console.error('Data SDK init failed');
+  }
+})();
+
+// ===== SCREENS =====
+function showMainScreen() {
+  document.getElementById('screen-select').classList.add('hidden');
+  document.getElementById('screen-main').classList.remove('hidden');
+  document.getElementById('pet-name-display-live').textContent = state.petName;
+  document.getElementById('pet-species-display').textContent = PETS[state.selectedPet].name;
+  
+  // Show pet facts
+  const facts = PETS[state.selectedPet].facts;
+  document.getElementById('fact-1').textContent = '🌟 ' + facts[0];
+  document.getElementById('fact-2').textContent = '🌟 ' + facts[1];
+  document.getElementById('fact-3').textContent = '🌟 ' + facts[2];
+  
+  if (state.petExploded) {
+    document.getElementById('pet-canvas').classList.add('hidden');
+    document.getElementById('pet-dead-screen').classList.remove('hidden');
+    document.getElementById('pet-name-display').textContent = state.petName;
+  } else {
+    drawPet(document.getElementById('pet-canvas'), PETS[state.selectedPet], 120);
+  }
+  updateStatsUI();
+  renderTasks();
+}
+
+buildPetGrid();
+
+if (state.started && state.selectedPet != null) {
+  showMainScreen();
+  showSpeech(getRandomDialogue('greeting'), 2500);
+} else {
+  // Restore selection if any
+  if (state.selectedPet != null) {
+    const btns = document.querySelectorAll('.pet-select-btn');
+    btns[state.selectedPet]?.classList.add('border-juniper', 'bg-juniper/10');
+    document.getElementById('btn-start').disabled = false;
+  }
+  if (state.petName) document.getElementById('pet-name-input').value = state.petName;
+}
+
+// Start button
+document.getElementById('btn-start').addEventListener('click', () => {
+  const name = document.getElementById('pet-name-input').value.trim();
+  if (!name || state.selectedPet == null) return;
+  state.petName = name;
+  state.started = true;
+  savePetState();
+  showMainScreen();
+});
+
+// Feed button
+document.getElementById('btn-feed').addEventListener('click', () => {
+  if (state.petExploded) return;
+  
+  if (state.food >= 100) { 
+    // Pet is already full - trigger explosion!
+    const canvas = document.getElementById('pet-canvas');
+    const rect = canvas.getBoundingClientRect();
+    
+    // Mark pet as exploded permanently
+    state.petExploded = true;
+    savePetState();
+    
+    // Hide canvas
+    canvas.style.opacity = '0';
+    canvas.classList.remove('anim-bounce');
+    
+    showReaction('💥');
+    
+    // Create pet confetti pieces
+    const petEmojis = [PETS[state.selectedPet].emoji, PETS[state.selectedPet].emoji, PETS[state.selectedPet].emoji, PETS[state.selectedPet].emoji, '💔', '💔'];
+    for (let i = 0; i < 12; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti-piece text-3xl';
+      confetti.textContent = petEmojis[i % petEmojis.length];
+      confetti.style.left = (rect.left + rect.width / 2) + 'px';
+      confetti.style.top = (rect.top + rect.height / 2) + 'px';
+      confetti.style.animationDelay = (i * 0.05) + 's';
+      document.body.appendChild(confetti);
+      setTimeout(() => confetti.remove(), 1300);
+    }
+    
+    setTimeout(() => {
+      canvas.classList.add('hidden');
+      document.getElementById('pet-dead-screen').classList.remove('hidden');
+      document.getElementById('pet-name-display').textContent = state.petName;
+      // Hide stats and action buttons
+      document.getElementById('stats-section').classList.add('hidden');
+      document.querySelectorAll('#btn-feed, #btn-pet, #btn-shop').forEach(btn => btn.classList.add('hidden'));
+    }, 550);
+    return; 
+  }
+  
+  // Cost 5 coins to feed
+  if (state.coins < 5) {
+    const btn = document.getElementById('btn-feed');
+    const origText = btn.innerHTML;
+    btn.textContent = 'Need 5 🪙';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.innerHTML = origText;
+      btn.disabled = false;
+    }, 1500);
+    return;
+  }
+  
+  state.coins -= 5;
+  state.food = Math.min(100, state.food + 15);
+  state.health = Math.min(100, state.health + 5);
+  const canvas = document.getElementById('pet-canvas');
+  canvas.classList.remove('anim-bounce');
+  canvas.classList.add('anim-feed');
+  drawPet(canvas, PETS[state.selectedPet], 120, 'eating');
+  showReaction('🍎');
+  setTimeout(() => {
+    canvas.classList.remove('anim-feed');
+    canvas.classList.add('anim-bounce');
+    updateStatsUI();
+  }, 1000);
+  savePetState();
+});
+
+// Pet button
+document.getElementById('btn-pet').addEventListener('click', () => {
+  if (state.petExploded) return;
+  state.happiness = Math.min(100, state.happiness + 10);
+  const canvas = document.getElementById('pet-canvas');
+  canvas.classList.remove('anim-bounce');
+  canvas.classList.add('anim-wiggle');
+  showReaction('💖');
+  showSpeech(getRandomDialogue('encouragement'), 2000);
+  setTimeout(() => {
+    canvas.classList.remove('anim-wiggle');
+    canvas.classList.add('anim-bounce');
+    updateStatsUI();
+  }, 1200);
+  savePetState();
+});
+
+// Shop button
+document.getElementById('btn-shop').addEventListener('click', () => {
+  document.getElementById('modal-shop').classList.remove('hidden');
+  document.getElementById('shop-coins-display').textContent = state.coins;
+});
+
+document.getElementById('btn-close-shop').addEventListener('click', () => {
+  document.getElementById('modal-shop').classList.add('hidden');
+});
+
+document.getElementById('modal-shop').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) document.getElementById('modal-shop').classList.add('hidden');
+});
+
+// Shop items
+document.querySelectorAll('.shop-item-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const cost = parseInt(btn.dataset.cost);
+    const type = btn.dataset.type;
+    
+    if (state.coins < cost) {
+      btn.textContent = 'Need more 🪙';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.textContent = `${cost} 🪙`;
+        btn.disabled = false;
+      }, 1500);
+      return;
+    }
+    
+    state.coins -= cost;
+    
+    if (type === 'apple') {
+      state.food = Math.min(100, state.food + 15);
+      showReaction('🍎');
+    } else if (type === 'treat') {
+      state.food = Math.min(100, state.food + 30);
+      showReaction('🍪');
+    } else if (type === 'love') {
+      state.happiness = Math.min(100, state.happiness + 20);
+      showReaction('💖');
+    } else if (type === 'potion') {
+      state.health = Math.min(100, state.health + 25);
+      showReaction('✨');
+    }
+    
+    const canvas = document.getElementById('pet-canvas');
+    canvas.classList.remove('anim-bounce');
+    canvas.classList.add('anim-wiggle');
+    setTimeout(() => {
+      canvas.classList.remove('anim-wiggle');
+      canvas.classList.add('anim-bounce');
+      updateStatsUI();
+    }, 1200);
+    
+    document.getElementById('shop-coins-display').textContent = state.coins;
+    savePetState();
+  });
+});
+
+// Click pet canvas to pet
+document.getElementById('pet-canvas').addEventListener('click', () => {
+  if (!state.petExploded) {
+    document.getElementById('btn-pet').click();
+  }
+});
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.activeTab = btn.dataset.cat;
+    renderTasks();
+  });
+});
+
+// Add task modal
+document.getElementById('btn-add-task').addEventListener('click', () => {
+  document.getElementById('modal-task').classList.remove('hidden');
+  document.getElementById('task-title').value = '';
+  document.getElementById('task-title').focus();
+});
+document.getElementById('btn-cancel-task').addEventListener('click', () => {
+  document.getElementById('modal-task').classList.add('hidden');
+});
+document.getElementById('modal-task').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) document.getElementById('modal-task').classList.add('hidden');
+});
+
+// Submit task
+document.getElementById('form-task').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (state.petExploded) return;
+  const title = document.getElementById('task-title').value.trim();
+  if (!title) return;
+  if (state.tasks.length >= 999) {
+    document.getElementById('task-title').value = '';
+    document.getElementById('task-title').placeholder = 'Task limit reached (999)!';
+    return;
+  }
+  const cat = document.querySelector('input[name="task-cat"]:checked').value;
+  const xpMap = { homework: 25, chores: 15, hobbies: 20 };
+  const btn = document.getElementById('btn-save-task');
+  btn.disabled = true; btn.textContent = '...';
+  const res = await window.dataSdk.create({
+    type: 'task',
+    title,
+    category: cat,
+    completed: false,
+    created_at: new Date().toISOString(),
+    xp_value: xpMap[cat]
+  });
+  btn.disabled = false; btn.textContent = 'Add Task';
+  if (res.isOk) {
+    document.getElementById('modal-task').classList.add('hidden');
+  }
+});
+
+// Stat decay over time (every 2 min)
+setInterval(() => {
+  if (!state.started) return;
+  state.food = Math.max(0, state.food - 2);
+  state.happiness = Math.max(0, state.happiness - 1);
+  if (state.food < 20) state.health = Math.max(0, state.health - 1);
+  updateStatsUI();
+  savePetState();
+}, 120000);
+
+applyConfig(defaultConfig);
+lucide.createIcons();
+
+// Restart button
+document.getElementById('btn-restart').addEventListener('click', () => {
+  // Reset state
+  state.xp = 0;
+  state.level = 1;
+  state.health = 100;
+  state.happiness = 100;
+  state.food = 100;
+  state.coins = 0;
+  state.petExploded = false;
+  state.activeTab = 'all';
+  state.tasks = [];
+  savePetState();
+  
+  // Reset UI
+  const canvas = document.getElementById('pet-canvas');
+  canvas.classList.remove('hidden');
+  canvas.style.opacity = '1';
+  document.getElementById('pet-dead-screen').classList.add('hidden');
+  document.getElementById('stats-section').classList.remove('hidden');
+  document.querySelectorAll('#btn-feed, #btn-pet, #btn-shop').forEach(btn => btn.classList.remove('hidden'));
+  
+  // Redraw and update
+  drawPet(canvas, PETS[state.selectedPet], 120);
+  updateStatsUI();
+  renderTasks();
+  showSpeech(getRandomDialogue('greeting'), 2500);
+});
+</script>
+  </div>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9de244c2f53a95ba',t:'MTc3MzgxNjI2NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
